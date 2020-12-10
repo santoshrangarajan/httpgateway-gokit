@@ -27,9 +27,11 @@ type bookService struct{}
 var ErrEmpty = errors.New("empty string")
 
 func (bookService) Isavailable(name string) (bool, error) {
+	log.Println("Bookservice Isavailable:name", name)
 	if name == "" {
 		return false, ErrEmpty
 	}
+	log.Println("Bookservice Isavailable, returning true")
 	return true, nil
 }
 
@@ -40,16 +42,17 @@ func (bookService) Authorname(name string) (string, error) {
 	return "santosh", nil
 }
 
-func (bookService) Count(s string) int {
-	if s == "" {
+func (bookService) Count(name string) int {
+	log.Println("Bookservice count:name", name)
+	if name == "" {
 		return 0
 	}
-	return 0
+	return 100
 }
 
 // For each method, we define request and response structs
 type isavailableRequest struct {
-	N string `json:"name"`
+	Name string `json:"name"`
 }
 
 type isavailableResponse struct {
@@ -59,27 +62,28 @@ type isavailableResponse struct {
 
 // For each method, we define request and response structs
 type countRequest struct {
-	N string `json:"s"`
+	Name string `json:"name"`
 }
 
+// For each method, we define request and response structs
 type countResponse struct {
-	V int `json:"v"`
+	Count int `json:"count"`
 }
 
 // For each method, we define request and response structs
 type authornameRequest struct {
-	N string `json:"name"`
+	Name string `json:"name"`
 }
 
 type authornameResponse struct {
-	V   string `json:"v"`
-	Err string `json:"err,omitempty"` // errors don't define JSON marshaling
+	Name string `json:"name"`
+	Err  string `json:"err,omitempty"` // errors don't define JSON marshaling
 }
 
 func makeAuthornameEndpoint(bksvc BookService) endpoint.Endpoint {
 	return func(_ context.Context, request interface{}) (interface{}, error) {
 		req := request.(authornameRequest)
-		v, err := bksvc.Authorname(req.N)
+		v, err := bksvc.Authorname(req.Name)
 		if err != nil {
 			return authornameResponse{v, err.Error()}, nil
 		}
@@ -90,19 +94,20 @@ func makeAuthornameEndpoint(bksvc BookService) endpoint.Endpoint {
 func makeCountEndpoint(bksvc BookService) endpoint.Endpoint {
 	return func(_ context.Context, request interface{}) (interface{}, error) {
 		req := request.(countRequest)
-		v := bksvc.Count(req.N)
-		return countResponse{v}, nil
+		count := bksvc.Count(req.Name)
+		return countResponse{count}, nil
 	}
 }
 
 func makeIsavailableEndpoint(bksvc BookService) endpoint.Endpoint {
 	return func(_ context.Context, request interface{}) (interface{}, error) {
 		req := request.(isavailableRequest)
-		v, err := bksvc.Isavailable(req.N)
+		v, err := bksvc.Isavailable(req.Name)
 		if err != nil {
 			return isavailableResponse{false, err.Error()}, nil
 		}
-		return isavailableResponse{v, err.Error()}, nil
+		log.Println("makeIsavailableEndpoint, returning response")
+		return isavailableResponse{v, ""}, nil
 	}
 }
 
@@ -129,6 +134,7 @@ func main() {
 		encodeResponse,
 	)
 
+	log.Println("starting....")
 	http.Handle("/authorname", authornameHandler)
 	http.Handle("/count", countHandler)
 	http.Handle("/isavailable", isavailableHandler)
